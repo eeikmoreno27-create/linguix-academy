@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [userPrefs, setUserPrefs] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restaurar sesión
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -27,13 +26,12 @@ const App: React.FC = () => {
         setUserPrefs(prefs);
         if (prefs.isLoggedIn) setAppState(AppState.DASHBOARD);
       } catch (e) {
-        console.error("Error al restaurar sesión");
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
     setIsLoading(false);
   }, []);
 
-  // Persistir cambios
   useEffect(() => {
     if (userPrefs) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userPrefs));
@@ -91,8 +89,8 @@ const App: React.FC = () => {
 
   if (isLoading) return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center">
-      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent animate-spin rounded-full mb-6 shadow-[0_0_30px_#3b82f6]"/>
-      <p className="text-slate-500 font-black uppercase text-[10px] tracking-[0.5em] animate-pulse">Iniciando Linguix Core by Erik Zavala</p>
+      <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent animate-spin rounded-full mb-6" />
+      <p className="text-slate-500 font-black uppercase text-[10px] tracking-widest">Iniciando Linguix...</p>
     </div>
   );
 
@@ -103,7 +101,7 @@ const App: React.FC = () => {
       case AppState.AUTH: return <Login onLogin={handleLogin} />;
       case AppState.ONBOARDING: return <Onboarding onComplete={(p) => { setUserPrefs(v => v ? {...v, ...p} : null); setAppState(AppState.DASHBOARD); }} />;
       case AppState.DASHBOARD: return <Dashboard prefs={userPrefs!} onNavigate={setAppState} />;
-      case AppState.EXERCISES: return <ExerciseSession prefs={userPrefs!} onFinish={(s) => { updateProgress(500, s); setAppState(AppState.DASHBOARD); }} />;
+      case AppState.EXERCISES: return <ExerciseSession prefs={userPrefs!} onFinish={(s) => { updateProgress(500, s); setAppState(AppState.DASHBOARD); }} onBack={() => setAppState(AppState.DASHBOARD)} />;
       case AppState.CONVERSATION: return <Conversation prefs={userPrefs!} onClose={() => setAppState(AppState.DASHBOARD)} />;
       case AppState.SCENARIOS: return <ScenarioSimulator prefs={userPrefs!} onFinish={(s) => { updateProgress(1000, s); setAppState(AppState.DASHBOARD); }} />;
       case AppState.GAMES: return <VocabularyGame prefs={userPrefs!} onFinish={(xp) => { updateProgress(xp, 100); setAppState(AppState.DASHBOARD); }} />;
@@ -113,12 +111,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 selection:bg-blue-500/30 font-sans">
+    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans">
       {appState !== AppState.AUTH && appState !== AppState.ONBOARDING && (
         <nav className="border-b border-white/5 bg-slate-950/90 backdrop-blur-3xl sticky top-0 z-[100] px-6 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setAppState(AppState.DASHBOARD)}>
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110">
                 <LayoutDashboard className="w-5 h-5 text-white" />
               </div>
               <span className="text-2xl font-black font-heading italic tracking-tighter uppercase">Linguix</span>
@@ -127,16 +125,15 @@ const App: React.FC = () => {
             <div className="flex items-center gap-6">
               <div className="hidden lg:flex items-center gap-3 bg-slate-900/40 p-1 rounded-2xl border border-white/5">
                 {[
-                  { id: AppState.DASHBOARD, label: 'Panel', icon: LayoutDashboard },
-                  { id: AppState.EXERCISES, label: 'Ruta', icon: BookOpen },
-                  { id: AppState.CONVERSATION, label: 'Tutor Voz', icon: Mic },
-                  { id: AppState.SCENARIOS, label: 'Misiones', icon: Map },
+                  { id: AppState.DASHBOARD, label: 'Inicio', icon: LayoutDashboard },
+                  { id: AppState.EXERCISES, label: 'Niveles', icon: BookOpen },
+                  { id: AppState.CONVERSATION, label: 'Voz', icon: Mic },
                 ].map((item) => (
                   <button 
                     key={item.id}
                     onClick={() => setAppState(item.id)}
-                    className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                      appState === item.id ? 'bg-white text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                      appState === item.id ? 'bg-white text-slate-950' : 'text-slate-500 hover:text-white'
                     }`}
                   >
                     <item.icon className="w-3.5 h-3.5" />
@@ -145,12 +142,12 @@ const App: React.FC = () => {
                 ))}
               </div>
               
-              <div onClick={() => setAppState(AppState.PROFILE)} className="flex items-center gap-4 glass pl-5 pr-2 py-2 rounded-2xl border-white/10 hover:border-blue-500/30 transition-all cursor-pointer group">
+              <div onClick={() => setAppState(AppState.PROFILE)} className="flex items-center gap-4 glass px-4 py-2 rounded-2xl border-white/10 cursor-pointer group">
                 <div className="text-right hidden sm:block">
-                  <p className="text-[10px] font-black uppercase text-white leading-none">{userPrefs?.name.split(' ')[0]}</p>
-                  <p className="text-[8px] text-blue-500 font-bold uppercase tracking-widest mt-1">Nivel {userPrefs?.subLevel}</p>
+                  <p className="text-[10px] font-black uppercase text-white">{userPrefs?.name.split(' ')[0]}</p>
+                  <p className="text-[8px] text-blue-500 font-bold uppercase tracking-widest">Nivel {userPrefs?.subLevel}</p>
                 </div>
-                <img src={userPrefs?.avatarUrl} className="w-9 h-9 rounded-xl border border-blue-500/30 group-hover:scale-105 transition-transform object-cover shadow-lg" alt="Avatar" />
+                <img src={userPrefs?.avatarUrl} className="w-9 h-9 rounded-xl border border-blue-500/30 group-hover:scale-105 transition-transform" alt="Avatar" />
               </div>
             </div>
           </div>
